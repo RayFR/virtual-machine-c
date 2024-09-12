@@ -62,13 +62,20 @@ int fetch()
     return program[pc];
 }
 
-void eval(int instr)
+void eval(int instr, Item *root)
 {
     switch (instr)
     {
     case HLT:
+    {
         live = false;
         break;
+    }
+    case PSH:
+    {
+        Item *item = create_item(program[pc++]);
+        link(item, root);
+    }
     }
 }
 
@@ -76,12 +83,12 @@ int main()
 {
     int instr = program[pc]; // holds the int of the current program instruction
 
-    Item *root = create_item(NULL);
+    Item *root = create_item(0);
 
     while (live)
     {
         int x = fetch();
-        eval(instr);
+        eval(instr, root);
         pc++;
     }
 
