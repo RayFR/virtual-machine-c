@@ -8,30 +8,76 @@ typedef struct Item // STRUCT WITH TWO VALUES (INT AND POINTER STRUCT)
     struct Item *next;
 } Item;
 
-Item *create_item(int value) // CREATES A NEW STRUCT ITEM
+Item *create_item(int value)
 {
-    Item *item = (Item *)malloc(sizeof(Item));
+    Item *newItem = (Item *)malloc(sizeof(Item));
 
-    if (item == NULL)
+    if (newItem == NULL)
     {
-        printf("MEMORY ALLOCATION FAILED\n");
-        exit(1);
+        printf("Memory allocation failed.");
     }
 
-    item->value = value;
-    item->next = NULL;
+    newItem->value = value;
+    newItem->next = NULL;
 
-    return item;
+    return newItem;
 }
 
-void link(Item *newItem, Item *root) // LINKS NEW ITEM TO END OF LINKED LIST -- TAKES THE NEWITEM AND THE ROOT ITEM AS PARAMETERS
+void push(Item *root, int value)
 {
+    Item *newItem = create_item(value);
     Item *currentItem = root;
+
     while (currentItem->next != NULL)
     {
         currentItem = currentItem->next;
     }
     currentItem->next = newItem;
+}
+
+int pop(Item *root)
+{
+    if (root->next == NULL) // If there's only the root item or no items
+    {
+        printf("Cannot pop from an empty stack.\n");
+        return -1; // Return an error value
+    }
+
+    Item *currentItem = root;
+    Item *previousItem = NULL;
+
+    // Traverse to the last item
+    while (currentItem->next != NULL)
+    {
+        previousItem = currentItem;
+        currentItem = currentItem->next;
+    }
+
+    int temp = currentItem->value;
+
+    if (previousItem != NULL)
+    {
+        previousItem->next = NULL; // Set the second-to-last item's next to NULL
+    }
+    
+    printf("Popped %d.", temp);
+
+    free(currentItem); // Free the memory of the last item
+
+    return temp;
+}
+
+void display(Item *root)
+{
+    Item *currentItem = root;
+    int count = 0;
+    while (currentItem->next != NULL)
+    {
+        count++;
+        currentItem = currentItem->next;
+        printf("\n%d: %d", count, currentItem->value);
+    }
+    printf("END");
 }
 
 typedef enum // ENUM SETS THE INSRUCTION SET
@@ -42,6 +88,12 @@ typedef enum // ENUM SETS THE INSRUCTION SET
     SET,
     HLT
 } InstructionSet;
+
+typedef enum 
+{
+    A, B, C, D, E, F, PC, 
+    NUM_OF_REGISTERS // last element will accuratelly count registers on base 0
+} Registers;
 
 const int program[] = { // MAIN PROGRAM
     PSH, 5,
@@ -61,30 +113,36 @@ int fetch()
 
 void eval(int instr, Item *root) // EVALUATE FUNCTION HOLDS A SWITCH OF THE BASIC COMMAND FUNCTIONALITIES
 {
-    switch (instr)
+    switch (instr) // braces around the switch cases allows for the cases to have a scope to assigne vars etc
     {
     case HLT: // Halt the program
         live = false;
+        printf("HALTPROGRAM");
         break;
 
     case PSH: // Push the next value onto the stack
     {
         // Increment pc to get the next value from the program
         int value = program[++pc];
-        Item *item = create_item(value);
-        link(item, root);
-        break;
-    }
-
-    case ADD: // Add the last two values
-    {
-        printf("ADD instruction executed.\n");
+        push(root, value);
+        printf("Pushed %d to the stack.", value);
         break;
     }
 
     case POP: // Pop the last item from the stack
     {
+        pop(root);
         printf("POP instruction executed.\n");
+        break;
+    }
+
+    case ADD:
+    {
+        int tempA = pop(root);
+        int tempB = pop(root);
+        int result = tempA + tempB;
+        printf("Successfully added.");
+        push(root, result);
         break;
     }
 
@@ -104,12 +162,14 @@ int main()
     while (live)
     {
         int instr = fetch(); // fetch the current instruction
-        eval(instr, root);   // evaluate the current instruction
+        eval(instr, root);   // evaluate the current instruction pc++;
         pc++;                // move to the next instruction
     }
 
+    display(root);
+
     // MEMORY CLEANUP LOOPS THROUGH LINKED LIST AND FREES THE ALLOCATED MEMORY UNTIL THE LIST IS COMPLETELY SEARCHED THROUGH
-    Item *current = root; // CURRENT INIT
+    Item *current = root;
     while (current != NULL)
     {
         Item *next = current->next;
